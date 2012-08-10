@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<html>
+    <head>
+        <meta http-equiv="content-type" content="text/html; charset=utf-8">
+        <title>TemplateSyntaxError at /login</title>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/mootoolsCore.js"></script>
+        <style type='text/css'>
+            #main {
+                position: relative;
+                width: 100%;
+            }
+        </style>
+        <script type="text/javascript">
+            window.addEvent('domready', function() {
+                $('login').addEvent('click', function() {
+                    new Request.JSON({
+                        url: location.pathname,
+                        onSuccess: function(res) {
+                            if (res.isSuccess) {
+                                location.href = location.query;
+                            }
+                            else {
+                                $('main').set('text', res.message);
+                            }
+                        }
+                    }).POST({
+                        username: $('user').getSelected()[0].value
+                    })
+                })
+            });
+            
+        </script>
+    </head>
+    <body>
+    <p>Choose user to login with</p>
+    <select id='user'>
+        {% for u in users %}
+        <option value='{{u.username}}'>{{u.username}}</option>
+        {% endfor %}
+    </select>
+    <input id='login' type='button' value='login' />
+    <div id='main'></div>
+    </body>
+</html>

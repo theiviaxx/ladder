@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+	<body>
+		<div id='invite_form' class='ladderForm'>
+			<p>Invite a friend to join a ladder</p>
+			<table>
+				<tr>
+					<td>Ladder</td>
+					<td>
+						<select id='ladder_select'>
+							<option value='0'>Select Ladder</option>
+							{% for ladder in ladders %}
+							<option value='{{ladder.id}}'>{{ladder.name}}</option>
+							{% endfor %}
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td>Player <img src='/static/images/icons/help.png' title='Username, i.e. JSterling' /></td>
+					<td><input id='player' /></td>
+				</tr>
+				<tr>
+					<td>Message</td>
+					<td>
+						<textarea id='message'></textarea>
+					</td>
+				</tr>
+			</table>
+		</div>
+	</body>
+	<script type="text/javascript">
+		(function(){
+			
+		})();
+	</script>
+</html>

@@ -1,0 +1,96 @@
+{% load irange %}
+{% if not ajax %}
+<link rel="stylesheet" href="{{ MEDIA_URL }}ladder/c/ladder.css" type="text/css" />
+
+<script type="text/javascript" src="/static/javascript/mootoolsCore.js"></script>
+<script type="text/javascript" src="/static/javascript/mootoolsMore.js"></script>
+
+
+<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/GrowingInput.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/TextboxList.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/TextboxList.Autocomplete.js"></script>
+{% endif %}
+<link rel="stylesheet" href="{{ MEDIA_URL }}ladder/c/TextboxList.css" type="text/css" />
+<link rel="stylesheet" href="{{ MEDIA_URL }}ladder/c/TextboxList.Autocomplete.css" type="text/css" />
+
+
+<div id='join_form' class='ladderForm'>
+	<form id='create_team_form'>
+		<table id='manual_teams' width="100%">
+			<tr>
+				<td width="180">Team Name:</td>
+				<td><input id='team_name' class='required' style="width: 80%; line-height: 22px;" /><img src='{{ MEDIA_URL }}i/icons/blank.png' id="team_name_valid" /></td>
+			</tr>
+			<tr>
+				<td width="180">Team Members:</td>
+				<td><input type="text" name="test1" value="" id="form_tags_input" /></td>
+			</tr>
+		</table>
+	</form>
+	<div id="create_team_button" class='button buttonGreen' style="float: right;width: 128px;">Create</div>
+</div>
+
+<script type="text/javascript">
+	var t4;
+	(function(){
+		var validate = new Form.Validator('create_team_form', {
+			onElementFail: function(el) {
+				el.addClass('fail');
+			}
+		});
+
+		t4 = new TextboxList('form_tags_input', {
+			unique: true,
+			plugins: {
+				autocomplete: {
+					minLength: 3,
+					queryRemote: true,
+					remote: {
+                        url: '/ladder/user/query'
+                    }
+				}
+			},
+			check: function(bit) {
+				return Boolean(bit[0]);
+			}
+		});
+		$('team_name').addEvent('keyup', function(e) {
+			var name = this.value;
+			new Request.JSON({
+				url: '/ladder/team/validateName',
+				data: {name: name},
+				onSuccess: function(res) {
+					if (res.value) {
+						$('team_name_valid').src = '/static/images/icons/accept.png';
+					}
+					else {
+						$('team_name_valid').src = '/static/images/icons/delete.png';
+					}
+				}
+			}).GET()
+		});
+		$('create_team_button').addEvent('click', function() {
+			var members = '';
+			t4.getValues().each(function(item) {
+				members += '&members=' + item[1];
+			});
+			var data = new Hash({
+				name: $('team_name').value
+			});
+			if (validate.validate()) {
+				new Request.JSON({
+					url: '/ladder/team',
+					data: data.toQueryString() + members,
+                    headers: {"X-CSRFToken": Cookie.read('csrftoken')},
+					onSuccess: function(res) {
+						if (res) {
+							var el = new Element('li', {text: res.name});
+							new Element('span', {text: res.members.length}).inject(el, 'bottom');
+							el.inject($('userTeams'));
+						}
+					}
+				}).POST()
+			}
+		});
+	})();
+</script>

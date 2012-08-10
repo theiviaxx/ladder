@@ -1,0 +1,116 @@
+<!DOCTYPE HTML>
+<html>
+	<body>
+		<div id="manual_entry" class='ladderForm'>
+			<h3>Which ladder did you play in?</h3>
+			<div id='manual_ladder' class='accordion'>
+				<select id='ladder_select'>
+					<option value='0'>Select Ladder</option>
+					{% for ladder in ladders %}
+					<option value='{{ladder.id}}'>{{ladder.name}}</option>
+					{% endfor %}
+				</select>
+			</div>
+			<h3>Team Information</h3>
+			<div id='manual_teams' class='accordion'>
+				<table>
+					<tr>
+						<td>Team to challenge with?</td>
+						<td>
+							<select id='red_team'>
+								{% for team in teams %}
+								<option value='{{team.id}}'>{{team.name}}</option>
+								{% endfor %}
+							</select>
+						</td>
+						<td id='red_join'></td>
+					</tr>
+					<tr>
+						<td>Who are you challenging?</td>
+						<td><input id='blu_team' /></td>
+						<td id='blu_join'></td>
+					</tr>
+				</table>
+			</div>
+			<h3>Extra Wagers</h3>
+			<div class='accordion'>
+				<textarea id='wagers' alt='You can enter any extra wagers here such as lunch or beers after work.'></textarea>
+			</div>
+		</div>
+		<script type="text/javascript">
+			var teams = {{teams_json|safe}};
+			var ladders = {{ladders_json|safe}};
+			var ladder = ladders[0];
+			var team = teams[0];
+			
+			var accord = new Fx.Accordion($$('#manual_entry h3'), $$('#manual_entry .accordion'), {
+				display: 0
+			})
+
+			$('ladder_select').addEvent('change', function() {
+				var select = $('ladder_select');
+				var sel = select.getSelected()[0];
+				for (i=0;i<ladders.length;i++) {
+					if (sel.value == ladders[i].id) {
+						ladder = ladders[i];
+						break;
+					}
+				}
+				$('red_team').empty();
+				teams.each(function(team) {
+					if (team.members.length == ladder.team_size) {
+						new Element('option', {'value':team.id}).set('text', team.name).inject($('red_team'));
+					}
+				})
+				if (sel.value > 0) {
+					accord.display(1);
+					redJoin.setEnabled(true);
+					bluJoin.setEnabled(true);
+				}
+			})
+			$('red_team').addEvent('change', function() {
+				var sel = $('red_team').getSelected()[0].value;
+				for (i=0;i<teams.length;i++) {
+					if (sel == teams[i].id) {
+						team = teams[i];
+						break;
+					}
+				}
+			})
+			$('blu_team').addEvent('blur', function() {
+				if ($('blu_team').value != '') {
+					accord.display(2);
+				}
+			})
+			
+			var redJoin = new Jx.Button({
+				image: $LADDER.icon('user_add'),
+				enabled: false,
+				onClick: function() {
+					var help = 'Please create a new team to join the ladder with.';
+					var join = new Ladder.JoinForm(ladder.id, {{user_json|safe}}, {teamSize:ladder.team_size, helpText: help, teams: teams});
+					join.addEvent('close', function(success, team) {
+						if (success) {
+							new Element('option', {'value':team.id,'selected':true}).set('text', team.name).inject('red_team')
+						}
+					})
+					join.open();
+				}
+			}).addTo('red_join');
+			var bluJoin = new Jx.Button({
+				image: $LADDER.icon('user_add'),
+				enabled: false,
+				onClick: function() {
+					var help = 'Please create a new team for your opponent to join the ladder with.';
+					var join = new Ladder.JoinForm(ladder.id, '{{user.username}}', {teamSize:ladder.team_size,onlyNew: true, helpText: help, blu: true, teams: teams});
+					join.addEvent('close', function(success, team) {
+						if (success) {
+							$('blu_team').value = team.name;
+						}
+					})
+					join.open();
+				}
+			}).addTo('blu_join')
+		</script>
+	</body>
+</html>

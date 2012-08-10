@@ -1,0 +1,46 @@
+{% load irange %}
+{% if not ajax %}
+
+{% endif %}
+<header>
+    <h2 id="mininav">{{title}}</h2>
+</header>
+<div id='content_body'>
+	{% for ladder in ladders %}
+    <a href="#ladder/{{ladder.id}}">
+    	<div class='ladderItem'>
+            <div>
+    			<h2>{{ladder.name}}</h2>
+    			<h2>{{ladder.team_size}}v{{ladder.team_size}}</h2>
+    			<div class='aggression'>{{ladder.aggression}}</div>
+    			
+    		</div>
+    		<div>
+    			{{ladder.description}}
+    		</div>
+    	</div>
+    </a>
+	{% endfor %}
+</div>
+<script type="text/javascript">
+    (function() {
+    	$$('.aggression').each(function(item) {
+    		var a = item.get('text').toInt();
+    		item.empty();
+    		new Element('div', {'class': 'green'}).inject(item);
+    		if (a >= 400) {
+    			new Element('div', {'class': 'green'}).inject(item);
+    			if (a >= 800) {
+    				new Element('div', {'class': 'green'}).inject(item);
+    			}
+    			else {
+    				new Element('div').inject(item);
+    			}
+    		}
+    		else {
+    			new Element('div').inject(item);
+    			new Element('div').inject(item);
+    		}
+    	});
+    })();
+</script>

@@ -1,0 +1,107 @@
+{% load irange %}
+{% if not ajax %}
+
+<link rel="stylesheet" href="{{ MEDIA_URL }}css/styles.css" type="text/css" />
+
+<script type="text/javascript" src="/static/javascript/mootoolsCore.js"></script>
+<script type="text/javascript" src="/static/javascript/mootoolsMore.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/moment.js"></script>
+{% endif %}
+<header>
+    <h2 id="mininav">{{title}}</h2>
+</header>
+<div>
+	{% if not games %}
+	<p>You have no open games</p>
+	{% endif %}
+	{% for game in games %}
+	<div class="openGame">
+        {% if game.game.status == 2 %}
+        <span class='undo' data-gameid="{{game.game.id}}">Undo<canvas width='16' height='16'>{{game.game.modified.isoformat}}</canvas></span>
+        {% endif %}
+		<span>In ladder <b>{{game.game.ladder.name}}</b> created on {{game.game.created|date:"M j, Y"}}.</span><br />
+		<div>
+			<div data-gameid="{{game.game.id}}" data-teamid="{{game.game.red.id}}" class="teamLink buttonRed redTeam"><b>{{game.game.red.name}} |</b> <span class='teamSize'>{{game.red_rating|stringformat:"i"}}</span></div>
+		</div>
+		vs
+		<div>
+			<div data-gameid="{{game.game.id}}" data-teamid="{{game.game.blu.id}}" class="teamLink buttonBlue bluTeam"><b>{{game.game.blu.name}} |</b> <span class='teamSize'>{{game.blu_rating|stringformat:"i"}}</span></div>
+		</div>
+	</div>
+	{% endfor %}
+</div>
+
+<script type="text/javascript">
+    (function() {
+    	$$('.redTeam, .bluTeam').each(function(item) {
+    		item.addEvent('click', function(e) {
+    			e.stop();
+    			new Request.JSON({
+    				url: '/ladder/game/' + this.dataset.gameid,
+    				onSuccess: function(res) {
+    					if (res.success) {
+    						item.parentNode.parentNode.destroy();
+    					}
+    					notify(res.message);
+    				}
+    			}).POST({result: this.dataset.teamid});
+    		});
+    	});
+
+        function runTimer(c, s) {
+            var s = s || 60;
+            var game = {counter: s};
+            function drawCircle(c) {
+                var ctx = c.getContext('2d');
+                ctx.clearRect(0,0,16,16);
+                ctx.beginPath();
+                ctx.moveTo(8,8);
+                var end = (this.counter * 6) * (Math.PI / 180);
+                ctx.arc(8,8,8,0,end);
+                ctx.closePath();
+                ctx.lineWidth = 1;
+                ctx.lineStyle = 'rgb(0,0,0)';
+                ctx.fill();
+                this.counter--;
+                if (this.counter < 0) {
+                    clearInterval(func);
+                    finalize(c.parentNode.dataset.gameid)
+                    c.parentNode.destroy();
+                }
+            }
+            var func = drawCircle.periodical(1000, game, c);
+        }
+        function finalize(id) {
+            new Request.JSON({
+                url: '/ladder/game'
+            }).PUT({id: id});
+        }
+    	
+        $$('.undo').each(function(item) {
+            var c = item.getElement('canvas');
+            var mod = moment(Date.parse(c.get('text'))).add('m', 1);
+            var now = moment();
+            var timeLeft = mod.diff(now, 'seconds');
+            
+            if (timeLeft > -1) {
+                runTimer(c, timeLeft);
+                item.addEvent('click', function(e) {
+                    e.stop();
+                    new Request.JSON({
+                        url: '/ladder/game/' + item.dataset.gameid,
+                        emulation: false,
+                        onSuccess: function(res) {
+                            
+                        },
+                        onFailure: function(res) {
+                            
+                        }
+                    }).DELETE();
+                })
+            }
+            else {
+                //item.destroy();
+            }
+        })
+    })();
+</script>

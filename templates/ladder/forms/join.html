@@ -1,0 +1,23 @@
+{% load irange %}
+{% if not ajax %}
+<link rel="stylesheet" href="{{ MEDIA_URL }}ladder/c/ladder.css" type="text/css" />
+
+<script type="text/javascript" src="/static/javascript/mootoolsCore.js"></script>
+<script type="text/javascript" src="/static/javascript/mootoolsMore.js"></script>
+{% endif %}
+<div id='join_form' class='ladderForm'>
+	<div id='join_ext' class='accordion'>
+		<h3>Join with an existing team</h3>
+		<select id='teamList'>
+			{% for team in teams %}
+			<option value='{{team.id}}'>{{team.name}}</option>
+			{% endfor %}
+		</select>
+	</div>
+	<input type='hidden' id='isNew' value='1' />
+</div>
+<script type="text/javascript">
+	(function(){
+		
+	})();
+</script>

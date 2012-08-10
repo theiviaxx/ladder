@@ -1,0 +1,120 @@
+{% load irange %}
+{{debug}}
+<!DOCTYPE html>
+
+<html>
+
+    <head>
+        <!-- <link rel="stylesheet" type="text/css" href="/static/javascript/ext4/resources/css/ext-all-scoped.css" /> -->
+        <link rel='stylesheet' type='text/css' href='{{ MEDIA_URL }}tournament/c/tournaments.css' />
+        <link rel='stylesheet' type='text/css' href='{{ MEDIA_URL }}tournament/c/theme.css' />
+        <link rel="stylesheet" href="{{ MEDIA_URL }}c/styles.css" type="text/css" />
+        
+        {% block extrastyle %}{% endblock %}
+    
+        <title>{{title}}</title>
+        
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/LAB.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/mootoolsCore.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/mootoolsMore.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/HashListener.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/HistoryManager.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/GrowingInput.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/TextboxList.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/TextboxList.Autocomplete.js"></script>
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/moment.js"></script>
+
+        <script type="text/javascript" src="{{ MEDIA_URL }}j/site.js"></script>
+
+        <script type="text/javascript" src="{{ MEDIA_URL }}tournament/j/tournament.js"></script>
+        
+        <script type="text/javascript">
+            window.addEvent('domready', function() {
+                UBD.init();
+            });
+        </script>
+        
+        {% block modulescript %}{% endblock %}
+        {% block extrascript %}{% endblock %}
+        
+    </head>
+    
+    <body>
+        <div id="wrap">
+            <header>
+                {% block nav %}
+                <nav>
+                    <div id='home_link' class="current home"><a href='#'><div>Home</div></a></div>
+                    <div id='ladder_link' class="ladder"><a href='#ladder'><div>Ladders</div></a></div>
+                    <div id='tourn_link' class="tourn"><a href='#tourn'><div>Tournaments</div></a></div>
+                </nav>
+                {% endblock %}
+            </header>
+            <div id="notify"><div>This is an error</div></div>
+            <div id="content">
+                <div id="sidepanel">
+                    <h1>{{user.first_name}} {{user.last_name}}</h1>
+                    <div id="userImage"></div>
+                    <div>
+                        <div id="report_game_button" class='button buttonRed buttonHasMenu'>
+                            Report Game
+                        </div>
+                        <div id="quickGameMenu" class="buttonMenu" title="Quick Game">▼</div>
+                    </div>
+                    <h3>Teams</h3>
+                    <ul id="userTeams">
+                        {% for team in teams %}
+                        <li id='team_{{team.id}}' class='teamLink'>{{team}} | <span class='teamSize'>{{team.members.all|length}}</span></li>
+                        {% endfor %}
+                    </ul>
+                    <p>
+                        <a id="team_create" href="#team/create">Create Team</a>
+                    </p>
+                    <p>
+                        <a id="invite" href="#invite">Invite Others</a>
+                    </p>
+                </div>
+                <div id="main">
+                    <div id='swap'>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,28 @@
+{% extends 'ladder/email/base.html' %}
+
+{% block content %}
+<table>
+	<tr>
+		<th></th>
+		<th>You have been invited to join the {{ladder.name}} ladder by {{user.username}}!</th>
+		<th></th>
+	</tr>
+	<tr>
+		<td></td>
+		<td>
+			{% if message %}
+			<p>{{user.username}} also says:</p>
+			<p>{{message}}</p>
+			{% endif %}
+			<p>
+				<ul>
+					<li><a href="{{url}}/ladder/{{ladder.id}}">{{ladder.name}}</a></li>
+					<li><a href="{{url}}/ladder/">Ladder Home</a></li>
+					<li>Your friend <a href="{{url}}/ladder/user/{{user.id}}">{{user.username}}'s</a> teams</li>
+				</ul>
+			</p>
+		</td>
+		<td></td>
+	</tr>
+</table>
+{% endblock %}

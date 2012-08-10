@@ -1,0 +1,24 @@
+<html lang="en">
+<head>
+   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <style type="text/css" media="screen">
+		body {background: #fff;font-family: Verdana, Geneva, Arial, Helvetica, sans-serif;}
+			body table td {border: 1px #82c963}
+			body table tr th:first-child {background: #c0e4b1 url('{{url}}/static/javascript/ladder/email_header.jpg') 0px 0px no-repeat;border-width: 0px 0px 1px 0px;width: 6px;}
+			body table tr th:last-child {background: #c0e4b1 url('{{url}}/static/javascript/ladder/email_header.jpg') -6px 0px no-repeat;border-width: 0px 0px 1px 0px;width: 6px;}
+			body table tr th {background: #c0e4b1;border: solid #82c963;border-width: 1px 0px;height: 31px;padding: 0px;margin: 0px;}
+			body table tbody tr td:first-child {border: solid #82c963;border-width: 0px 0px 1px 1px;padding: 0px;}
+			body table tbody tr td:last-child {border: solid #82c963;border-width: 0px 1px 1px 0px;padding: 0px;}
+			body table tbody tr td {ackground: #fff;border: solid #82c963;border-width: 0px 0px 1px 0px;}
+	</style>
+</head>
+<body>
+	
+	<div class='side'></div>
+	<div class='content'>
+		<div>
+			{% block content %}{% endblock %}
+		</div>
+	</div>
+</body>
+</html>

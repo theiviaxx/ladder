@@ -1,0 +1,28 @@
+{% extends "ladder/index.html" %}
+
+{% block extrascript %}
+<script type='text/javascript'>
+    window.addEvent('domready', function() {
+		new HtmlTable($('user_teams'), {
+			zebra: true,
+			classZebra: 'row-b',
+			sortable: true
+		});
+    });
+</script>
+{% endblock %}
+
+{% block content %}
+<div>
+    <h1>User: {{ object.username }}</h1>
+    
+    <div id="teams" class="team-section">
+        <p>Teams</p>
+        <table width='100%' id='user_teams'>
+        	{% for member in object.members.all %}
+            <tr class="{% cycle 'row-a' 'row-b' %}"><td><a href='/ladder/team/{{member.id}}'>{{member.name}}</a></td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+	<div id='quick_game_row'>
+		<label for='quick_text'>Quick Game</label>
+		<textarea id='quick_text'></textarea>
+		<div class="button buttonGreen">Add</div>
+		<p>Example: I beat ecalder on Street Fighter 3</p>
+	</div>
+<script type="text/javascript">
+(function() {
+	var games = JSON.parse('{{games|safe}}');
+	var tabSlides = [];
+
+	games.each(function(game, i) {
+		var row = buildRow(i, game.ladder, game.red, game.blu).inject($('win'));
+		var ut = new Element('div', {'class': 'underTab'}).inject('win');
+		ut.position({
+			relativeTo: row,
+			position: 'topRight',
+			edge: 'topRight'
+		});
+		var inner = new Element('div').inject(ut);
+		var submitButton = new Element('div', {
+			'class': 'button buttonGreen',
+			text: 'Submit',
+			events: {
+				click: function(e) {
+					e.stop();
+					var row = this.dataset.row.toInt();
+					var game = JSON.parse(this.dataset.game);
+					game.red_wins = $(game.red + '_' + row).value.toInt();
+					game.blu_wins = $(game.blu + '_' + row).value.toInt();
+					new Request.JSON({
+						url: '/ladder/quick'
+					}).POST({q:JSON.stringify(game)});
+					$('win').destroy();
+				}
+			}
+		}).inject(inner);
+		submitButton.dataset.row = i;
+		submitButton.dataset.game = JSON.stringify({ladder: game.ladder.id, red: game.red.id, blu: game.blu.id});
+	});
+
+	$$('#quick_game_row .button')[0].addEvent('click', function() {
+		var input = $('quick_text');
+		var q = input.value;
+		input.value = "";
+
+		new Request.JSON({
+			url: '/ladder/language',
+			onSuccess: function(game) {
+				$('win').destroy();
+				notify("Game successfully created!")
+			},
+			onFailure:  function(msg) {
+				$('win').destroy();
+				notify(msg.responseText, 'error')
+			}
+		}).POST({q: q});
+	})
+	
+	
+	$$('.underTab > div').each(function(item) {
+		var slide = new Fx.Tween(item, {
+		    duration: 'short',
+		    //transition: 'bounce:out',
+		    property: 'right'
+		});
+		tabSlides.push(slide);
+	});
+	$$('#win input, #win textarea').each(function(item) {
+		item.addEvent('focus', function(e) {
+			var idx = item.parentNode.parentNode.id.replace('matchup_row_', '').toInt();
+
+			tabSlides.each(function(tabSlide, i) {
+				if (i == idx) {
+					if (tabSlide.element.getStyle('right').toInt() != -100) {
+						tabSlide.start(0, -100);
+					}
+				}
+				else {
+					tabSlide.start(0, 0);
+				}
+			});
+		});
+	});
+	function buildRow(id, ladder, red, blu) {
+		function buildButton(team) {
+			var winCount = new Element('input', {id: team.id + '_' + id, type: 'number', value: 0});
+			var row = new Element('div', {
+				'class': 'button',
+				events: {
+					click: function(e) {
+						if (e.target.get('tag') != 'input') {
+							winCount.value = winCount.value.toInt() + 1;
+						}
+
+						tabSlides.each(function(tabSlide, i) {
+							if (i == id) {
+								if (tabSlide.element.getStyle('right').toInt() != -100) {
+									tabSlide.start(0, -100);
+								}
+							}
+							else {
+								tabSlide.start(0, 0);
+							}
+						});
+					}
+				}
+			}).inject(div);
+			new Element('span', {text: team.name}).inject(row);
+			winCount.inject(row);
+
+			return row;
+		}
+		var div = new Element('div', {
+			id: 'matchup_row_' + id,
+			'class': 'matchupRow'
+		});
+		new Element('h4', {text: ladder.name}).inject(div);
+		buildButton(red).addClass('buttonRed').inject(div);
+		buildButton(blu).addClass('buttonBlue').inject(div);
+
+		return div;
+	}
+})();
+</script>

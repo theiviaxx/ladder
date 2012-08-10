@@ -1,0 +1,376 @@
+{% load irange %}
+
+<!DOCTYPE html>
+
+<html>
+
+	<head>
+		<!-- <link rel="stylesheet" type="text/css" href="/static/javascript/ext4/resources/css/ext-all-scoped.css" /> -->
+		<link rel="stylesheet" href="{{ MEDIA_URL }}ladder/c/styles.css" type="text/css" />
+		
+		{% block extrastyle %}{% endblock %}
+	
+		<title>{{title}}</title>
+		
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/mootoolsCore.js"></script>
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/mootoolsMore.js"></script>
+		<!--<script type="text/javascript" src="/static/javascript/ext4/ext-all.js"></script>
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/ladder.js"></script>-->
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/LAB.js"></script>
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/HashListener.js"></script>
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/HistoryManager.js"></script>
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/GrowingInput.js"></script>
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/TextboxList.js"></script>
+		<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/TextboxList.Autocomplete.js"></script>
+
+		<script type="text/javascript">
+			window.$NAV = null;
+
+			function handleURL(url, data) {
+				data = new Hash(data || {});
+				var el = $('swap');
+				el.empty();
+				el.set('load', {data:data.toQueryString()});
+				el.load(url);
+			}
+			function setHeader(str) {
+				$('mininav').set('text', str);
+			}
+			
+			window.addEvent('domready', function() {
+				var Hist = new HashListener();
+				var Ladder = {};
+				Hist.addEvent('hashChanged', function(hash) {
+					switch (hash.slice(0,4)) {
+						case 'ladd':
+							var path = hash.split('/');
+							if (path.length > 1) {
+								handleURL('/ladder/ladder/' + path[1]);
+							}
+							else {
+								handleURL('/ladder/ladder');
+								$$('nav div').removeClass('current');
+								$('ladder_link').addClass('current');
+							}
+							$$('#userTeams li').addEvent('mousedown', function(event){
+								// `this` refers to the element with the .item class
+								var shirt = this;
+
+								var clone = shirt.clone().setStyles(shirt.getCoordinates()).setStyles({
+									opacity: 0.7,
+									position: 'absolute'
+								}).inject(document.body);
+								clone.addClass('userTeamClone');
+								clone.dataset.teamid = shirt.id.replace('team_', '');
+								clone.hide();
+
+								var drag = new Drag.Move(clone, {
+
+									droppables: $('ladder'),
+
+									onSnap: function() {
+										event.stop();
+										clone.show();
+									},
+
+									onDrop: function(dragging, cart){
+
+										dragging.destroy();
+
+										if (cart != null){
+											cart.getElement('table').highlight('#7389AE', '#FFF');
+											new Request.JSON({
+												url: '/ladder/ladder/' + $('ladder').dataset.ladderid,
+												data: 'team=' + dragging.dataset.teamid,
+												onSuccess: function(res) {
+													if (res[0]) {
+														handleURL('/ladder/ladder/' + $('ladder').dataset.ladderid);
+													}
+													else {
+														notify(res[1], 'error')
+													}
+												}
+											}).POST();
+										}
+									},
+									onEnter: function(dragging, cart){
+										cart.getElement('table').tween('background-color', '#98B5C1');
+									},
+									onLeave: function(dragging, cart){
+										cart.getElement('table').tween('background-color', '#FFF');
+									},
+									onCancel: function(dragging){
+										dragging.destroy();
+									}
+								});
+								drag.start(event);
+							});
+							break;
+						case 'team':
+							var path = hash.split('/');
+							if (path.length > 1) {
+								if (path[1] == 'create') {
+									var data = new Hash({
+										
+									});
+									handleURL('/ladder/forms/teamcreate', data);
+								}
+								else {
+									handleURL('/ladder/team/' + path[1]);
+								}
+							}
+							break;
+						case 'quic':
+							handleURL('/ladder/forms/manual');
+							break;
+						case 'repo':
+							handleURL('/ladder/game');
+							break;
+						default:
+							break;
+					}
+				});
+				Hist.start();
+				$$('.teamLink').each(function(link) {
+					link.addEvent('click', function() {
+						Hist.updateHash('team/' + link.id.replace('team_', ''));
+					});
+					//var drag = new Drag.Move(link);
+				});
+
+				$('home_link').addEvent('click', function() {
+					
+				});
+				$('ladder_link').addEvent('click', function() {
+					Hist.updateHash('ladder')
+				});
+				$('tourn_link').addEvent('click', function() {
+					
+				});
+				$('team_create').addEvent('click', function(e) {
+					e.stop();
+
+					if ($('createTeamPopup')) {
+						$('createTeamPopup').destroy();
+					}
+					
+		    		var div = new Element('div', {
+		    			id: 'createTeamPopup',
+			    		'class': 'triangle-border left',
+			    		styles: {
+			    			top: this.getPosition().y - 60, // height of popup
+			    			left: this.getPosition().x + this.getWidth() + 20 // width of triangle
+			    			 // for arrow
+			    		}
+			    	});
+		    		div.load('/ladder/forms/teamcreate')
+		    		div.inject(document.body);
+
+		    		var clearWin = function(e) {
+						if (e.target != div && !e.target.getParents().contains(div)) {
+							div.destroy();
+							window.removeEvent('click', clearWin);
+						}
+					}
+					window.addEvent('click', clearWin)
+				});
+				$('report_game_button').addEvent('click', function() {
+					Hist.updateHash('reportgame')
+				});
+
+				//ticker
+				var tickerReq = new Request.JSON({
+					url: '/ladder/game/ticker',
+					method: 'get',
+					onSuccess: function(result) {
+                        var games = result.values;
+						var el= $('ticker');
+						games.each(function(game) {
+							var div = new Element('div');
+							new Element('div', {'class': 'tickerOverlay'}).inject(div);
+							var str = "{name} {delta}";
+							new Element('span', {
+								'class': (game.result === 0) ? 'green' : 'red',
+								html: str.substitute({
+									name: game.red.name,
+									delta: game.red_change.toInt()
+								})
+							}).inject(div);
+							new Element('br').inject(div);
+							new Element('span', {
+								'class': (game.result === 0) ? 'red' : 'green',
+								html: str.substitute({
+									name: game.blu.name,
+									delta: game.blu_change.toInt()
+								})
+							}).inject(div);
+
+							div.inject(el);
+						});
+					}
+				})
+				tickerReq.GET();
+				//tickerReq.periodical(60 * 1000); // 60s
+
+				// QuickGame
+				$('quickGameMenu').addEvent('click', function() {
+					var div = new Element('div', {
+						id: 'win',
+						load: {
+							url: '/ladder/forms/quick',
+							onSuccess: function() {
+								var clearWin = function(e) {
+									if (e.target != div && !e.target.getParents().contains(div)) {
+										div.destroy();
+										window.removeEvent('click', clearWin);
+									}
+								}
+								window.addEvent('click', clearWin);
+							}
+						}
+					}).inject(document.body);
+					div.load();
+					div.position({
+						relativeTo: $('report_game_button'),
+						position: 'bottomLeft',
+						edge: 'bottomLeft'
+					});
+					
+				});
+			});
+			function notify(message, type, timeout) {
+				var timeout = timeout || 10;
+				var el = $('notify');
+				el.addEvent('click', el.hide);
+				var msg = new Element('div', {text: message})
+				switch(type) {
+					case 'error':
+						msg.setStyles({
+							'background-color': '#dd4b39',
+							'border-color': '#900',
+							color: '#fff'
+						});
+						break;
+					default:
+						msg.setStyles({
+							'background-color': '#fef7cb',
+							'border-color': '#ffe475',
+							color: '#000'
+						});
+						break;
+				}
+				el.empty();
+				msg.inject(el);
+				el.reveal();
+				el.dissolve.delay(timeout * 1000, el) // 30 sec
+			}
+		</script>
+		
+		{% block modulescript %}{% endblock %}
+		{% block extrascript %}{% endblock %}
+		
+	</head>
+	
+	<body>
+		<div id="wrap">
+			<header>
+				{% block nav %}
+				<nav>
+					<div id='home_link' class="current home"><a href='#'><div></div></a></div>
+					<div id='ladder_link' class="ladder"><a href='#ladder'><div></div></a></div>
+					<div id='tourn_link' class="tourn"><a href='#tourn'><div></div></a></div>
+				</nav>
+				{% endblock %}
+			</header>
+			<div id="notify"><div>This is an error</div></div>
+			<div id="ticker">
+				<!-- <div>
+					<div class='tickerOverlay'></div>
+					<span class='red'>TeamName</span><br />
+					<span class='green'>TeamName</span>
+				</div>
+				<div>
+					<div class='tickerOverlay'></div>
+					<span class='red'>TeamName</span><br />
+					<span class='green'>TeamName</span>
+				</div>
+				<div>
+					<div class='tickerOverlay'></div>
+					<span class='red'>TeamName</span><br />
+					<span class='green'>TeamName</span>
+				</div>
+				<div>
+					<div class='tickerOverlay'></div>
+					<span class='red'>TeamName</span><br />
+					<span class='green'>TeamName</span>
+				</div>
+				<div>
+					<div class='tickerOverlay'></div>
+					<span class='red'>TeamName</span><br />
+					<span class='green'>TeamName</span>
+				</div> -->
+			</div>
+			<div id="content">
+				<div id="sidepanel">
+					<h1>{{user.first_name}} {{user.last_name}}</h1>
+					<div id="userImage"></div>
+					<div>
+						<div id="report_game_button" class='button buttonRed buttonHasMenu'>
+							Report Game
+						</div>
+						<div id="quickGameMenu" class="buttonMenu" title="Quick Game">▼</div>
+					</div>
+					<h3>Teams</h3>
+					<ul id="userTeams">
+						{% for team in teams %}
+						<li id='team_{{team.id}}' class='teamLink'>{{team}} | <span class='teamSize'>{{team.members.all|length}}</span></li>
+						{% endfor %}
+					</ul>
+					<p>
+						<a id="team_create" href="#team/create">Create Team</a>
+					</p>
+				</div>
+				<div id="main">
+					<div id='swap'>
+						
+					</div>
+				</div>
+			</div>
+		</div>
+	</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
