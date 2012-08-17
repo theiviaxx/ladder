@@ -130,9 +130,9 @@ header {
 }
 
 nav {
-    position: absolute;
-    left: 200px;
-    top: 14px;
+    /*position: absolute;
+    left: 200px;*/
+    margin-top: 14px;
     /*width: 180px;*/
     height: 30px;
 }
@@ -171,10 +171,13 @@ nav {
     }
     #wrap nav > div:last-child {
         border-width: 1px 1px 1px 0;
+        border-radius: 0 2px 2px 0;
+        -webkit-border-radius: 0 2px 2px 0;
+        -moz-border-radius: 0 2px 2px 0;
     }
     #wrap nav > div.current {
         background: #e8e8e8;
-        border-color: #bbbbbb;
+        border-color: #000;
         box-shadow: inset 0 0 3px 3px rgba(0,0,0,0.1);
         -webkit-box-shadow: inset 0 0 3px 3px rgba(0,0,0,0.1);
         -moz-box-shadow: inset 0 0 3px 3px rgba(0,0,0,0.1);
@@ -183,6 +186,7 @@ nav {
         background-position: bottom left;
     }
     #wrap nav > div div {
+        display: inline-block;
         /*width: 18px;*/
         height: 18px;
         background-position: top left;
@@ -201,6 +205,9 @@ nav {
     }
     #wrap nav > div.tourn div {
         background-image: url('../i/tourn_icon.png');
+    }
+    #wrap nav div a {
+        color: #000;
     }
 
 #ticker {
@@ -302,12 +309,12 @@ nav {
         -moz-border-radius: 2px;
         background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#8fa16f), to(#8fa16f));
         /*background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#EFEFEF), to(#CCCCCC), color-stop(.6,#EFEFEF));*/
-        background: -moz-linear-gradient(0% 100% 90deg,#CCCCCC, #EFEFEF);
+        background: -moz-linear-gradient(0% 100% 90deg,#8fa16f, #8fa16f);
         border: 1px solid rgba(220,255,220, 0.2);
     }
     .teamLink:hover {
         background: -webkit-gradient(linear, 0% 0%, 0% 100%, from(#9bb270), to(#9bb270));
-        background: -moz-linear-gradient(0% 100% 90deg,#cacaca, #EFEFEF);
+        background: -moz-linear-gradient(0% 100% 90deg,#9bb270, #9bb270);
         box-shadow: 0 2px 2px rgba(0,0,0,0.5);
         -webkit-box-shadow: 0 2px 2px rgba(0,0,0,0.5);
         -moz-box-shadow: 0 2px 2px rgba(0,0,0,0.5);

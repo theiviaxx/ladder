@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpResponseRedirect, HttpResponsePermanen
 from django.views.decorators.http import require_http_methods
 from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.contenttypes.models import ContentType
-from django.shortcuts import render_to_response
+from django.shortcuts import render_to_response, render
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
@@ -48,20 +48,20 @@ LOGIN_REQ = method_decorator(login_required)
 class IndexView(MainView):
     @LOGIN_REQ
     def view(self, request):
-        self._processRequest(request)
+        context = self._processRequest(request)
         teams = request.user.teams.all()
         teamIds = [t.id for t in teams]
         redGames = Game.objects.filter(red__in=teamIds)
         bluGames = Game.objects.filter(blu__in=teamIds)
         games = redGames | bluGames
 
-        self.context['title'] = 'Ladder Index'
-        self.context['ladders'] = json.dumps([ladder.json() for ladder in Ladder.objects.all()])
-        self.context['games'] = games
+        context['title'] = 'Ladder Index'
+        context['ladders'] = json.dumps([ladder.json() for ladder in Ladder.objects.all()])
+        context['games'] = games
 
-        self.template = "ladder/index.html"
+        template = "ladder/index.html"
 
-        return self.render()
+        return render(request, template, context)
     
     @LOGIN_REQ
     def language(self, request):
@@ -142,8 +142,8 @@ class IndexView(MainView):
     @LOGIN_REQ
     def quick(self, request):
         res = Result()
-        self._processRequest(request)
-        serobj = self.POST.get('q', False)
+        context = self._processRequest(request)
+        serobj = context['request'].POST.get('q', False)
         if serobj:
             obj = json.loads(serobj)
             ladder = Ladder.objects.get(pk=obj['ladder'])
@@ -162,7 +162,7 @@ class IndexView(MainView):
                 games.append(g)
             
             res.isSuccess = True    
-            res.setValue([g.json() for g in games])
+            res.append([g.json() for g in games])
         else:
             res.isError = True
             res.message = "No query provided"
@@ -182,47 +182,43 @@ class TeamView(MainView):
         else:
             return HttpResponse()
 
-    @LOGIN_REQ
-    def view(self, request, obj_id):
-        return super(TeamView, self).view(request, obj_id)
+    #@LOGIN_REQ
+    #def view(self, request, obj_id):
+    #    return super(TeamView, self).view(request, obj_id)
     
-    def get(self, request, obj_id):
+    def get(self, request, obj_id, requestData={}):
+        context = requestData
         if request.GET.get('json', False):
             res = Result()
             res.isSuccess = True
-            res.setValue(self.object.json())
+            res.append(context['object'].json())
+            
             return JsonResponse(res)
 
-        # Get challenges
-        redChallenges = Game.objects.filter(red__exact=self.object).filter(status=0)
-        bluChallenges = Game.objects.filter(blu__exact=self.object).filter(status=0)
-
-        redGames = Game.objects.filter(red__exact=self.id)
-        bluGames = Game.objects.filter(blu__exact=self.id)
+        redGames = Game.objects.filter(red__exact=context['id'], status=Game.Closed)
+        bluGames = Game.objects.filter(blu__exact=context['id'], status=Game.Closed)
         games = redGames | bluGames
 
         game_hist = []
         for n in games:
             obj = {
-                'opponent': n.blu if self.object == n.red else n.red,
+                'opponent': n.blu if context['object'] == n.red else n.red,
                 'ladder': n.ladder,
                 'status': n.status,
-                'win': n.result == self.object,
+                'win': n.result == context['object'],
                 'date': n.created,
-                'delta': n.red_change if self.object == n.red else n.blu_change,
+                'delta': n.red_change if context['object'] == n.red else n.blu_change,
             }
             game_hist.append(obj)
 
-        self.context['challenges_red'] = redChallenges
-        self.context['challenges_blu'] = bluChallenges
-        self.context['games'] = game_hist
-        self.context['isMember'] = True if (self.object.members.filter(username=self.user.username).count()) > 0 else False
+        context['games'] = game_hist
+        context['isMember'] = True if (context['object'].members.filter(username=context['request'].user.username).count()) > 0 else False
 
-        return self.render()
+        return render(request, 'ladder/team.html', context)
 
     @LOGIN_REQ
     def create(self, request):
-        self._processRequest(request)
+        #self._processRequest(request)
         teamName = request.POST.get('name', None)
         members = request.POST.getlist('members')
 
@@ -244,12 +240,12 @@ class TeamView(MainView):
 
     @LOGIN_REQ
     def validateName(self, request):
-        self._processRequest(request)
+        #self._processRequest(request)
         t = Team.objects.filter(name=request.GET.get('name', None))
 
         res = Result()
         res.isSuccess = True
-        res.setValue(not bool(len(t)))
+        res.append(not bool(len(t)))
 
         return JsonResponse(res)
 
@@ -268,7 +264,7 @@ class TeamView(MainView):
             except ObjectDoesNotExist:
                 raise Http404
 
-        ratings = RatingHistory.objects.filter(ladder=ladder, team=team).order_by('created')
+        ratings = RatingHistory.objects.filter(ladder=ladder, team=team).order_by('id')
         
         data = {
             'title': ladder.name,
@@ -277,7 +273,7 @@ class TeamView(MainView):
             'colNames': [team.name,],
         }
         res.isSuccess = True
-        res.setValue(data)
+        res.append(data)
 
         return JsonResponse(data)
 
@@ -285,8 +281,8 @@ class TeamView(MainView):
         team = Team.objects.get(pk=obj_id)
         limit = request.GET.get('limit', None)
 
-        redGames = Game.objects.filter(red__exact=team.id)
-        bluGames = Game.objects.filter(blu__exact=team.id)
+        redGames = Game.objects.filter(red__exact=team.id, status=Game.Closed)
+        bluGames = Game.objects.filter(blu__exact=team.id, status=Game.Closed)
         games = redGames | bluGames
 
         if limit:
@@ -294,7 +290,8 @@ class TeamView(MainView):
         
         res = Result()
         res.isSuccess = True
-        res.setValue([game.json() for game in games])
+        for game in games:
+            res.append(game.json())
 
         return JsonResponse(res)
 
@@ -309,38 +306,39 @@ class LadderView(MainView):
 
     @LOGIN_REQ
     def index(self, request):
-        self._processRequest(request)
+        context = self._processRequest(request)
         if request.GET.get('json', False):
             ladders = [ladder.json() for ladder in Ladder.objects.all()]
             return JsonResponse(ladders)
-        self.context['ladders'] = Ladder.objects.all()
-        self.context['title'] = 'Ladders'
-        self.template = 'ladder/ladder.html'
+        context['ladders'] = Ladder.objects.all()
+        context['title'] = 'Ladders'
+        template = 'ladder/ladder.html'
 
-        return self.render()
+        return render(request, template, context)
     
     @LOGIN_REQ
-    def get(self, request, obj_id):
-        members = self.object.laddermembership_set.order_by('-rating__rating')
+    def get(self, request, obj_id, requestData={}):
+        context = requestData#self._processRequest(request, obj_id)
+        members = context['object'].laddermembership_set.order_by('-rating__rating')
         userTeams = request.user.teams.all()
 
-        self.context['members'] = members
-        self.context['ladders'] = Ladder.objects.all()
-        self.context['inLadder'] = True if Ladder.objects.filter(laddermembership__team__in=userTeams) else False
-        self.context['teamsInLadder'] = userTeams.filter(laddermembership__ladder=obj_id)
+        context['members'] = members
+        context['ladders'] = Ladder.objects.all()
+        context['inLadder'] = True if Ladder.objects.filter(laddermembership__team__in=userTeams) else False
+        context['teamsInLadder'] = userTeams.filter(laddermembership__ladder=obj_id)
 
-        self.template = 'ladder/ladder_item.html'
+        template = 'ladder/ladder_item.html'
 
-        return self.render()
+        return render(request, template, context)
     
     @LOGIN_REQ
-    def post(self, request, obj_id):
-        return self.join(request, obj_id)
+    def post(self, request, obj_id, requestData={}):
+        return self.join(request, obj_id, requestData)
 
     @LOGIN_REQ
     def create(self, request):
         """ Create a new ladder """
-        self._processRequest(request)
+        #self._processRequest(request)
         ladder = Ladder()
         ladder.name = request.POST.get('name', None)
         ladder.teasize = request.POST.get('size', 1)
@@ -349,11 +347,10 @@ class LadderView(MainView):
         return HttpResponseRedirect('/ladder')
 
     @LOGIN_REQ
-    def join(self, request, obj_id):
+    def join(self, request, obj_id, context):
         """ Joins a team to a ladder """
         res = Result()
-        self._processRequest(request, obj_id)
-        teamId = self.POST.get('team', None)
+        teamId = context['request'].POST.get('team', None)
 
         if teamId:
             try:
@@ -364,27 +361,27 @@ class LadderView(MainView):
 
                 return JsonResponse(res)
             
-            if self.object.laddermembership_set.filter(team=team).count() > 0:
+            if context['object'].laddermembership_set.filter(team=team).count() > 0:
                 res.isError = True
                 res.message = ALREADY_MEMBER
 
                 return JsonResponse(res)
             
-            if len(team) != self.object.team_size:
+            if len(team) != context['object'].team_size:
                 res.isError = True
-                res.message = L_INCORRECT_SIZE % self.object.team_size
+                res.message = L_INCORRECT_SIZE % context['object'].team_size
 
                 return JsonResponse(res)
             
             # Get a new rating object
-            rating = RatingHistory(team=team,ladder=self.object)
+            rating = RatingHistory(team=team,ladder=context['object'])
             rating.save()
 
-            lm = LadderMembership(team=team, ladder=self.object, rating=rating)
+            lm = LadderMembership(team=team, ladder=context['object'], rating=rating)
             lm.save()
 
             res.isSuccess = True
-            res.setValue(team.json())
+            res.append(team.json())
 
             #self.mail_join(team)
 
@@ -398,41 +395,40 @@ class LadderView(MainView):
     @LOGIN_REQ
     def manual(self, request, obj_id):
         """ Handles manual game entries """
+        res = Result()
         message = ''
         error = False
-        self._processRequest(request, obj_id)
+        context = self._processRequest(request, obj_id)
         red = Team.objects.get(pk=request.POST.get('red', None))
         blu = Team.objects.get(name=request.POST.get('blu', None))
-        games = request.POST.get('games', []).split(',')
-        if request.user in red.teams.all() and request.user in blu.teams.all():
+        games = request.POST.get('games', '').split(',')
+        
+        if request.user in red.members.all() and request.user in blu.members.all():
             error = True
             message = IN_BOTH_TEAMS
         try:
-            red.laddermembership_set.get(ladder=self.object)
+            red.laddermembership_set.get(ladder=context['object'])
         except ObjectDoesNotExist:
             message = RED_NOT_MEMBER
             error = True
         try:
-            blu.laddermembership_set.get(ladder=self.object)
+            blu.laddermembership_set.get(ladder=context['object'])
         except ObjectDoesNotExist:
             message = BLU_NOT_MEMBER
             error = True
         if error:
-            return JsonResponse((False, message))
+            res.isError = True
+            res.message = message
+            return JsonResponse(res)
 
         forMail = []
 
         for game in games:
             winner = 'red' if game == '0' else 'blu'
-            challenge = Challenge(
-                ladder = self.object,
+            game = Game(
+                ladder = context['object'],
                 red = red,
                 blu = blu,
-                status = Challenge.ACCEPTED
-            )
-            challenge.save()
-            game = Game(
-                challenge = challenge,
                 status = Game.Closed
             )
             game.save()
@@ -442,13 +438,16 @@ class LadderView(MainView):
 
         self.mail_manual(request.user, forMail)
 
-        return JsonResponse((True, message))
+        res.isSuccess = True
+        res.message = message
+
+        return JsonResponse(res)
 
     @LOGIN_REQ
     def challenge(self, request, obj_id):
         """ Handles manual challenges """
         res = Result()
-        self._processRequest(request, obj_id)
+        context = self._processRequest(request, obj_id)
         red = Team.objects.get(pk=request.POST.get('red', None))
         blu = Team.objects.get(pk=request.POST.get('blu', None))
         if request.user in blu.members.all():
@@ -457,11 +456,8 @@ class LadderView(MainView):
 
             return JsonResponse(res)
 
-        challenge = Challenge(ladder=self.object, red=red, blu=blu, status=Challenge.ACCEPTED)
-        challenge.save()
-
-        g = Game(challenge=challenge)
-        g.save()
+        game = Game(ladder=context['object'], red=red, blu=blu, status=Game.Open)
+        game.save()
 
         res.isSuccess = True
         res.message = CH_SUCCESS
@@ -472,7 +468,7 @@ class LadderView(MainView):
 
     def mail_join(self, team):
         """ Notify all members of team that the team has joined a ladder """
-        mail('Team Join', 'ladder/email/ladder_join.html', {'ladder':self.object, 'team': team}, [user.email for user in team.members.all()])
+        mail('Team Join', 'ladder/email/ladder_join.html', {'ladder':context['object'], 'team': team}, [user.email for user in team.members.all()])
 
     def mail_challenge(self, challenge):
         """ Notify all members of blu team that a challenge has been issued """
@@ -480,8 +476,8 @@ class LadderView(MainView):
 
     def mail_manual(self, user, games):
         """ Notify all members of both teams that games were entered and their results """
-        red = [user.email for user in games[0].challenge.red.members.all()]
-        blu = [user.email for user in games[0].challenge.blu.members.all()]
+        red = [user.email for user in games[0].red.members.all()]
+        blu = [user.email for user in games[0].blu.members.all()]
         mail('Games have been entered', 'ladder/email/manual.html', {'games': games, 'user': user}, red + blu)
 
 
@@ -491,7 +487,7 @@ class GameView(MainView):
 
     @LOGIN_REQ
     def index(self, request):
-        self._processRequest(request)
+        context = self._processRequest(request)
         if request.method == 'GET':
             updatePending()
             teams = request.user.teams.all()
@@ -507,19 +503,19 @@ class GameView(MainView):
                     'red_rating': n.red.laddermembership_set.filter(ladder=n.ladder)[0].rating.rating,
                     'blu_rating': n.blu.laddermembership_set.filter(ladder=n.ladder)[0].rating.rating,
                 })
-            self.context['games'] = games
-            self.template = 'ladder/game.html'
+            context['games'] = games
+            template = 'ladder/game.html'
 
-            return self.render()
+            return render(request, template, context)
         elif request.method == 'POST':
             return self.create(request)
         else:
             pass
     
     @LOGIN_REQ
-    def get(self, request, obj_id):
+    def get(self, request, obj_id, requestData={}):
         updatePending()
-
+        context = requestData
         teams = request.user.teams.all()
         qs = Q()
         for n in teams:
@@ -533,26 +529,26 @@ class GameView(MainView):
                 'red_rating': n.red.laddermembership_set.filter(ladder=n.ladder)[0].rating.rating,
                 'blu_rating': n.blu.laddermembership_set.filter(ladder=n.ladder)[0].rating.rating,
             })
-        self.context['games'] = games
-        self.template = 'ladder/game.html'
+        context['games'] = games
+        template = 'ladder/game.html'
 
-        return self.render()
+        return render(request, template, context)
     
     @LOGIN_REQ
-    def post(self, request, obj_id):
-        return self.update(request, obj_id)
+    def post(self, request, obj_id, requestData={}):
+        return self.update(request, obj_id, requestData)
     
     @LOGIN_REQ
-    def put(self, request, obj_id):
-        self._processRequest(request, obj_id)
+    def put(self, request, obj_id, requestData={}):
+        context = requestData
         res = Result()
-        status = self.PUT.get('status', None)
+        status = context['PUT'].get('status', None)
         if status:
-            self.object.status = int(status)
-            self.object.save()
+            context['object'].status = int(status)
+            context['object'].save()
 
             res.isSuccess = True
-            res.message = "Status update to %i" % self.object.status
+            res.message = "Status update to %i" % context['object'].status
         else:
             res.isError = True
             res.message = "Status was missing or invalid"    
@@ -561,7 +557,7 @@ class GameView(MainView):
 
     def create(self, request):
         res = Result()
-        self._processRequest(request)
+        #context = self._processRequest(request)
 
         ladder = Ladder.objects.get(pk=request.POST.get('lid', None))
         red = Team.objects.get(pk=request.POST.get('red', None))
@@ -587,30 +583,29 @@ class GameView(MainView):
         return JsonResponse(res)
 
     def ticker(self, request):
-        games = [g.json() for g in Game.objects.filter(status=Game.Closed)[:5]]
-
         res = Result()
         res.isSuccess = True
-        res.setValue(games)
+        for g in Game.objects.filter(status=Game.Closed)[:5]:
+            res.append(g.json())
 
         return JsonResponse(res)
 
-    def update(self, request, obj_id):
+    def update(self, request, obj_id, context):
         """
         Does the maths for the result of the game and closes it out
         """
-        self._processRequest(request, obj_id)
+        
         updatePending()
         res = Result()
         request.POST
         
-        if self.object.status != 0:
+        if context['object'].status != 0:
             res.isError = True
             res.message = "This game is not open"
             
             return JsonResponse(res)
 
-        if self.user in self.object.red.members.all() or self.user in self.object.blu.members.all():
+        if context['request'].user in context['object'].red.members.all() or context['request'].user in context['object'].blu.members.all():
             result = request.POST.get('result', None)
             if not result:
                 res.isError = True
@@ -618,15 +613,15 @@ class GameView(MainView):
                 
                 return JsonResponse(res)
 
-            self.object.update(Team.objects.get(pk=result))
+            context['object'].update(Team.objects.get(pk=result))
 
             # Send the emails of the results
-            red = [user.email for user in self.object.red.members.all()]
-            blu = [user.email for user in self.object.blu.members.all()]
-            #mail('Game has ended', 'ladder/email/game.html', {'game': self.object, 'user': self.user}, red + blu)
+            red = [user.email for user in context['object'].red.members.all()]
+            blu = [user.email for user in context['object'].blu.members.all()]
+            #mail('Game has ended', 'ladder/email/game.html', {'game': context['object'], 'user': context['request'].user}, red + blu)
             res.isSuccess = True
             res.message = "Game is now closed"
-            res.setValue(self.object.json())
+            res.append(context['object'].json())
         else:
             res.isError = True
             res.message = 'You are not a member of either team for this game.'
@@ -650,20 +645,20 @@ class UserView(MainView):
         MainView.__init__(self, User)
 
     def view(self, request, obj_id):
-        self._processRequest(request, obj_id)
+        #self._processRequest(request, obj_id)
 
         res = Result()
         res.isSuccess = True
-        res.setValue(userToJson(self.object))
+        res.append(userToJson(context['object']))
 
         return JsonResponse(res)
 
     def history(self, request, obj_id, returnType=None):
-        self._processRequest(request, obj_id)
+        context = self._processRequest(request, obj_id)
         res = Result()
         limit = request.GET.get('limit', None)
 
-        teams = self.object.teams.values_list('id', flat=True).order_by('id')
+        teams = context['object'].teams.values_list('id', flat=True).order_by('id')
         games = Game.objects.filter(Q(red__in=teams) | Q(blu__in=teams))
         if limit:
             games = games[:int(limit)]
@@ -674,7 +669,7 @@ class UserView(MainView):
             return [game.json() for game in games]
         else:
             res.isSuccess = True
-            res.setValue([game.json() for game in games])
+            res.append([game.json() for game in games])
             return JsonResponse(res)
         
 
@@ -692,7 +687,7 @@ class UserView(MainView):
         
         res = Result()
         res.isSuccess = True
-        res.setValue(data)
+        res.append(data)
 
         return JsonResponse(res)
 
@@ -706,7 +701,7 @@ class UserView(MainView):
             for n in users:
                 results.append([n.id, n.username])
             res.isSuccess = True
-            res.setValue(results)
+            res.append(results)
         else:
             res.isError = True
             res.message = 'No search query provided'
@@ -725,25 +720,26 @@ class FormsView(object):
             if not existing.has_key(id) and not existing.has_key(di):
                 recent.append(g)
                 existing[id] = True
-
-        context = {
-            'games': json.dumps([game.json() for game in recent]),
-        }
+        context = {}
+        context['games'] = json.dumps([game.json() for game in recent])
+        template = 'ladder/quick_game.html'
         
-        return render_to_response('ladder/quick_game.html', RequestContext(request, context))
+        return render(request, template, context)
     
     def manual(self, request):
         teams = request.user.teams.all()
         ladders = Ladder.objects.all()
-        context = {
-            'user': request.user,
-            'user_json': json.dumps({'id':request.user.id,'name':request.user.username}),
-            'teams_json': json.dumps([team.json() for team in teams]),
-            'ladders_json': json.dumps([ladder.json() for ladder in ladders]),
-            'teams': teams,
-            'ladders': ladders,
-        }
-        return render_to_response('ladder/forms/manual_ext.html', context)
+        context = self._processRequest(request)
+        context['user'] = request.user
+        context['user_json'] = json.dumps({'id':request.user.id,'name':request.user.username})
+        context['teams_json'] = json.dumps([team.json() for team in teams])
+        context['ladders_json'] = json.dumps([ladder.json() for ladder in ladders])
+        context['teams'] = teams
+        context['ladders'] = ladders
+
+        template = 'ladder/forms/manual_ext.html'
+        
+        return render(request, template, context)
 
     def join(self, request):
         ladderID = request.GET.get('ladder', None)
@@ -831,9 +827,9 @@ def mail(subject, template, context, to):
     html = '<style type="text/css">table td {border: solid 1px #82c963;}</style><table><tr><td>Some stuff1</td></tr></table>'
 
     txt = 'this is plain text1'
-    msg = EmailMultiAlternatives(subject, txt, FROM_ADDRESS, to, headers={'Content-Transfer-Encoding':'7bit'})
-    msg.attach_alternative(html, 'text/html')
-    msg.send()
+    # msg = EmailMultiAlternatives(subject, txt, FROM_ADDRESS, to, headers={'Content-Transfer-Encoding':'7bit'})
+    # msg.attach_alternative(html, 'text/html')
+    # msg.send()
 
 
 index = IndexView()

@@ -126,9 +126,9 @@ header {
 }
 
 nav {
-	position: absolute;
+	/*position: absolute;
 	left: 200px;
-	top: 14px;
+	top: 14px;*/
 	width: 180px;
 	height: 30px;
 }

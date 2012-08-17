@@ -4,149 +4,91 @@
 
 <script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/mootoolsCore.js"></script>
 <script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/mootoolsMore.js"></script>
-<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/LAB.js"></script>
+<script type="text/javascript" src="{{ MEDIA_URL }}ladder/j/lib/MilkChart.js"></script>
 {% endif %}
 <header>
-	<h2 id="mininav">{{title}}</h2>
+    <h2 id="mininav">{{title}}</h2>
 </header>
 <div id='ladder_team'>
-	<div id="team_info">
-		<div id="roster">
-			<h3>Roster</h3>
-	        <ul>
-	            {% for member in object.members.all %}
-	            <li>{{member.username}}</li>
-	            {% endfor %}
-	        </ul>
-	    </div>
-	    <div id="ladders">
-	    	<h3>Ladder Memberships</h3>
-	        <ul>
-	            {% for membership in object.laddermembership_set.all %}
-	            <li>
-	            	<span class='ratingswap' data-ladderid='{{membership.ladder.id}}'><img src='{{ MEDIA_URL }}ladder/i/chart_line.png' /></span>
-	            	<a href="#ladder/{{membership.ladder.id}}">
-	            		<div class='teamLink'>
-	            		<b>{{membership.ladder.name}}</b>
-	            		<span class='teamSize'>{{membership.rating.rating|stringformat:"i"}}</span></div>
-	            	</a>
-	            </li>
-	            {% endfor %}
-	        </ul>
-	    </div>
-	</div>
+    <div id="team_info">
+        <div id="roster">
+            <h3>Roster</h3>
+            <ul>
+                {% for member in object.members.all %}
+                <li>{{member.username}}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        <div id="ladders">
+            <h3>Ladder Memberships</h3>
+            <ul>
+                {% for membership in object.laddermembership_set.all %}
+                <li>
+                    <span class='ratingswap' data-ladderid='{{membership.ladder.id}}'><img src='{{ MEDIA_URL }}ladder/i/chart_line.png' /></span>
+                    <a href="#ladder/{{membership.ladder.id}}">
+                        <div class='teamLink'>
+                        <b>{{membership.ladder.name}}</b>
+                        <span class='teamSize'>{{membership.rating.rating|stringformat:"i"}}</span></div>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
     <div id='rating_history'>
-    	<h3>Rating History</h3>
-    	{% with ladder=object.laddermembership_set.all|first %}
-    	<table id='rating_table' title="{{ladder.ladder.name}}" class='data'>
-			<thead>
-				<tr>
-					<th>Rating</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for rating in ratings %}
-				<tr>
-					<td>{{rating.rating|stringformat:"i"}}</td>
-				</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-		{% endwith %}
+        <h3>Rating History</h3>
+        {% with ladder=object.laddermembership_set.all|first %}
+        <table id='rating_table' title="{{ladder.ladder.name}}" class='data'>
+            <thead>
+                <tr>
+                    <th>Rating</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rating in ratings %}
+                <tr>
+                    <td>{{rating.rating|stringformat:"i"}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endwith %}
     </div>
 
     <div id='game_history'>
-    	<h3>Game History</h3>
-    	<table id="games_table" class='data ladder'>
-			<thead>
-				<tr>
-					<th>Opponent</th>
-					<th>Ladder</th>
-					<th>Date</th>
-					<th>Δ</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for game in games|slice:":5" %}
-				<tr class='{{game.win|yesno:"win,loss"}}'>
-					<td><a href="#team/{{game.opponent.id}}">{{game.opponent.name}}</a></td>
-					<td><a href="#ladder/{{game.ladder.id}}">{{game.ladder.name}}</a></td>
-					<td>{{game.date|date:"M j, Y"}}</td>
-					<td>
-						{% if game.delta >= 0 %}
-						<div class='arrowGreen'></div>{{game.delta|stringformat:"i"}}
-						{% else %}
-						<div class='arrowRed'></div>{{game.delta|stringformat:"i"|slice:"1:"}}
-						{% endif %}
-					</td>
-				</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-		{% if games|length > 5 %}<div id="showMoreButton" class="button">Show All</div>{% endif %}
+        <h3>Game History</h3>
+        <table id="games_table" class='data ladder'>
+            <thead>
+                <tr>
+                    <th>Opponent</th>
+                    <th>Ladder</th>
+                    <th>Date</th>
+                    <th>Δ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for game in games|slice:":5" %}
+                <tr class='{{game.win|yesno:"win,loss"}}'>
+                    <td><a href="#team/{{game.opponent.id}}">{{game.opponent.name}}</a></td>
+                    <td><a href="#ladder/{{game.ladder.id}}">{{game.ladder.name}}</a></td>
+                    <td>{{game.date|date:"M j, Y"}}</td>
+                    <td>
+                        {% if game.delta >= 0 %}
+                        <div class='arrowGreen'></div>{{game.delta|stringformat:"i"}}
+                        {% else %}
+                        <div class='arrowRed'></div>{{game.delta|stringformat:"i"|slice:"1:"}}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% if games|length > 5 %}<div id="showMoreButton" class="button">Show All</div>{% endif %}
     </div>
 </div>
 <script type="text/javascript">
     (function() {
-	    //var table = new HtmlTable('rating_table');
-	    var chart;
-	    $LAB.script("{{ MEDIA_URL }}ladder/j/MilkChart.js").wait(function() {
-			chart = new MilkChart.Line('rating_table', {
-				useZero: false,
-				showKey: false,
-				background: '#eeebdf'
-			});
-			chart.load({
-		    	url: '/ladder/team/{{object.id}}/graph',
-		    	method: 'get'
-		    });
-		});
-	    
-	    $$('.ratingswap').each(function(item) {
-	    	item.addEvent('click', function() {
-	    		chart.load({
-			    	url: '/ladder/team/{{object.id}}/graph',
-			    	method: 'get',
-			    	data: {ladder: item.dataset.ladderid}
-			    });
-	    	})
-	    });
-	    var showMoreButton = $('showMoreButton');
-	    if (showMoreButton) {
-	    	showMoreButton.addEvent('click', function() {
-		    	var gamesTable = new HtmlTable('games_table');
-		    	new Request.JSON({
-		    		url: '/ladder/team/{{object.id}}/history',
-		    		onSuccess: function(res) {
-		    			gamesTable.empty();
-		    			res.values.each(function(item) {
-		    				//var icon = new Image();
-		    				var opp, delta;
-		    				if (item.red.id == {{object.id}}) {
-		    					opp = item.blu;
-		    					delta = item.red_change;
-		    				}
-		    				else {
-		    					opp = item.red;
-		    					delta = item.blu_change;
-		    				}
-		    				
-					    	//icon.src = (delta >= 0) ? '{{ MEDIA_URL }}i/icons/add.png' : '{{ MEDIA_URL }}i/icons/delete.png';
-					    	var arrow = new Element('div');
-					    	arrow.className = (delta >= 0) ? 'arrowGreen' : 'arrowRed';
-			    			gamesTable.push([
-				    			new Element('a', {href: '#team/' + opp.id, text: opp.name}),
-					    		new Element('a', {href: '#ladder/' + item.ladder.id, text: item.ladder.name}),
-					    		new Date(item.modified).format("%b %e, %Y"),
-					    		new Element('span', {text: Math.abs(delta.toInt())}).grab(arrow, 'top')
-					    	], {
-					    		'class': (opp.id == item.result) ? 'loss': 'win'
-					    	});
-			    		});
-			    		$('showMoreButton').destroy();
-		    		}
-		    	}).GET();
-		    });
-	    }
+        Ladder.Team.getChart({{object.id}});
+        Ladder.Team.buildShowMore({{object.id}});
     })();
 </script>

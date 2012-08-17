@@ -1,118 +1,112 @@
-{% load irange %}
-{% if not ajax %}
-
-<link rel="stylesheet" href="{{ MEDIA_URL }}css/styles.css" type="text/css" />
-
-<script type="text/javascript" src="/static/javascript/mootoolsCore.js"></script>
-<script type="text/javascript" src="/static/javascript/mootoolsMore.js"></script>
-{% endif %}
 <header>
-	<h2 id="mininav">{{title}}</h2>
+    <h2 id="mininav">{{title}}</h2>
 </header>
 
 <div>
-	<div>
-		<h2>{{object.team_size}}v{{object.team_size}}</h2>
-	</div>
-	<div>
-		{{object.description}}
-	</div>
+    <div>
+        <h2>{{object.team_size}}v{{object.team_size}}</h2>
+    </div>
+    <div>
+        {{object.description}}
+    </div>
 </div>
 
-<p><img src="/static/images/icons/help.png" /> To join this ladder, drag one of your teams onto the ladder</p>
+<p><img src="{{ MEDIA_URL }}ladder/i/help.png" /> To join this ladder, drag one of your teams onto the ladder</p>
 <div id='ladder' data-ladderid="{{object.id}}">
-	<table id="ladder_table" class="ladder">
-		<thead>
-			<tr>
-				<th>Rank</th>
-				<th>Team</th>
-				<th>Rating</th>
-				<th>C</th>
-			</tr>
-		</thead>
-		<tbody>
-			{% for member in members %}
-			<tr>
-				<td>{{forloop.counter}}</td>
-				<td><a href="#team/{{member.team.id}}">{{member.team.name}}</a></td>
-				<td>{{member.rating.rating|stringformat:"i"}}</td>
-				<td style="width: 48px;"><div class='button challenge' data-teamid='{{member.team.id}}' style="margin-top: 0;width: 16px;">C</div></td>
-			</tr>
-			{% endfor %}
-		</tbody>
-	</table>
+    <table id="ladder_table" class="ladder">
+        <thead>
+            <tr>
+                <th>Rank</th>
+                <th>Team</th>
+                <th>Rating</th>
+                <th>C</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in members %}
+            <tr>
+                <td>{{forloop.counter}}</td>
+                <td><a href="#team/{{member.team.id}}">{{member.team.name}}</a></td>
+                <td>{{member.rating.rating|stringformat:"i"}}</td>
+                <td style="width: 48px;"><div class='button challenge' data-teamid='{{member.team.id}}' style="margin-top: 0;width: 16px;">C</div></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
 <script type="text/javascript">
     (function() {
-    	table = new HtmlTable("ladder_table");
-    	while (table.body.children.length < 20) {
-    		table.push(['','','','']);
-    	}
-    	{% if teamsInLadder %}
-		{% if teamsInLadder|length > 1 %}
-		var ul = new Element('ul', {id: 'challengeMenu'});
-		function menuHide(e) {
-    		if (!e.target.hasClass('challenge')) {
-	    		ul.hide();
-    			window.removeEvent('click', fn);
-    		}
-    	}
-    	var fn = menuHide;
-		{% for team in teamsInLadder %}
-		new Element('li', {
-			events: {
-				click: function(e) {
-					new Request.JSON({
-		    			url: '/ladder/game',
-		    			onSuccess: function(res) {
-		    				if (res.isSuccess) {
-		    					notify(res.message)
-		    				}
-		    				else {
-		    					notify(res.message, 'error')
-		    				}
-		    			}
-		    		}).POST({red: {{team.id}}, blu: this.parentNode.dataset.teamid, lid: {{object.id}}});
-				}
-			},
-			text: '{{team.name}}'
-		}).inject(ul);
-		ul.hide();
-		ul.inject(document.body);
-		{% endfor %}
-		$$('.challenge').each(function(item) {
-    		item.addEvent('click', function(e) {
-    			var coords = item.getCoordinates();
-    			ul.setStyles({
-    				position: 'absolute',
-    				top: coords.bottom - 1,
-    				left: coords.left
-    			});
-    			ul.dataset.teamid = this.dataset.teamid;
-    			ul.show();
-    			window.addEvent('click', fn);
-    		})
-    	});
-		{% else %}
-		$$('.challenge').each(function(item) {
-    		{% with team=teamsInLadder|first %}
-    		item.addEvent('click', function() {
-    			new Request.JSON({
-	    			url: '/ladder/game',
-	    			onSuccess: function(res) {
-	    				if (res.isSuccess) {
-	    					notify(res.message)
-	    				}
-	    				else {
-	    					notify(res.message, 'error')
-	    				}
-	    			}
-	    		}).POST({red: {{team.id}}, blu: this.dataset.teamid, lid: {{object.id}}});
-    		})
-    		{% endwith %}
-    	});
-    	{% endif %}
-    	{% endif %}
+        table = new HtmlTable("ladder_table");
+        while (table.body.children.length < 20) {
+            table.push(['','','','']);
+        }
+        {% if teamsInLadder %}
+        {% if teamsInLadder|length > 1 %}
+        var ul = new Element('ul', {id: 'challengeMenu'});
+        function menuHide(e) {
+            if (!e.target.hasClass('challenge')) {
+                ul.hide();
+                window.removeEvent('click', fn);
+            }
+        }
+        var fn = menuHide;
+        {% for team in teamsInLadder %}
+        new Element('li', {
+            events: {
+                click: function(e) {
+                    new Request.JSON({
+                        url: '/ladder/game',
+                        headers: {"X-CSRFToken": Cookie.read('csrftoken')},
+                        onSuccess: function(res) {
+                            if (res.isSuccess) {
+                                Ladder.notify(res.message)
+                            }
+                            else {
+                                Ladder.notify(res.message, 'error')
+                            }
+                        }
+                    }).POST({red: {{team.id}}, blu: this.parentNode.dataset.teamid, lid: {{object.id}}});
+                }
+            },
+            text: '{{team.name}}'
+        }).inject(ul);
+        ul.hide();
+        ul.inject(document.body);
+        {% endfor %}
+        $$('.challenge').each(function(item) {
+            item.addEvent('click', function(e) {
+                var coords = item.getCoordinates();
+                ul.setStyles({
+                    position: 'absolute',
+                    top: coords.bottom - 1,
+                    left: coords.left
+                });
+                ul.dataset.teamid = this.dataset.teamid;
+                ul.show();
+                window.addEvent('click', fn);
+            })
+        });
+        {% else %}
+        $$('.challenge').each(function(item) {
+            {% with team=teamsInLadder|first %}
+            item.addEvent('click', function() {
+                new Request.JSON({
+                    url: '/ladder/game',
+                    headers: {"X-CSRFToken": Cookie.read('csrftoken')},
+                    onSuccess: function(res) {
+                        if (res.isSuccess) {
+                            Ladder.notify(res.message)
+                        }
+                        else {
+                            Ladder.notify(res.message, 'error')
+                        }
+                    }
+                }).POST({red: {{team.id}}, blu: this.dataset.teamid, lid: {{object.id}}});
+            })
+            {% endwith %}
+        });
+        {% endif %}
+        {% endif %}
     })();
 </script>

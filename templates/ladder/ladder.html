@@ -1,7 +1,3 @@
-{% load irange %}
-{% if not ajax %}
-
-{% endif %}
 <header>
     <h2 id="mininav">{{title}}</h2>
 </header>
@@ -23,24 +19,5 @@
 	{% endfor %}
 </div>
 <script type="text/javascript">
-    (function() {
-    	$$('.aggression').each(function(item) {
-    		var a = item.get('text').toInt();
-    		item.empty();
-    		new Element('div', {'class': 'green'}).inject(item);
-    		if (a >= 400) {
-    			new Element('div', {'class': 'green'}).inject(item);
-    			if (a >= 800) {
-    				new Element('div', {'class': 'green'}).inject(item);
-    			}
-    			else {
-    				new Element('div').inject(item);
-    			}
-    		}
-    		else {
-    			new Element('div').inject(item);
-    			new Element('div').inject(item);
-    		}
-    	});
-    })();
+    Ladder.agressionGauge();
 </script>
